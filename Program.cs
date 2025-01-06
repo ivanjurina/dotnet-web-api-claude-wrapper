@@ -15,7 +15,9 @@ using Microsoft.Extensions.Options;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add JWT Configuration
-var jwtConfig = builder.Configuration.GetSection("JwtConfig").Get<JwtConfig>();
+var jwtConfig = builder.Configuration
+    .GetSection("JwtConfig")
+    .Get<JwtConfig>() ?? throw new InvalidOperationException("JwtConfig is missing in configuration");
 builder.Services.AddSingleton(jwtConfig);
 
 // Add SQLite Database
@@ -102,6 +104,12 @@ builder.Services.AddScoped<IClaudeService, ClaudeService>();
 
 // Add repository
 builder.Services.AddScoped<IClaudeRepository, ClaudeRepository>();
+
+// Add HttpContextAccessor
+builder.Services.AddHttpContextAccessor();
+
+// Add HttpClient
+builder.Services.AddHttpClient<ClaudeService>();
 
 var app = builder.Build();
 

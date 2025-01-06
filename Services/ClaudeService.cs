@@ -1,44 +1,37 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
+using System.Net.Http.Json;
+using System.Text.Json;
 using dotnet_webapi_claude_wrapper.Configuration;
+using Microsoft.Extensions.Options;
 using dotnet_webapi_claude_wrapper.Contracts;
 using dotnet_webapi_claude_wrapper.DataModel.Entities;
 using dotnet_webapi_claude_wrapper.Repositories;
-using Microsoft.Extensions.Configuration;
-using Microsoft.AspNetCore.Http;
-using dotnet_webapi_claude_wrapper.Extensions;
-using Anthropic;
-using Microsoft.Extensions.Options;
-using dotnet_webapi_claude_wrapper.Contracts.Configuration;
-using dotnet_webapi_claude_wrapper.Contracts.Models;
-using dotnet_webapi_claude_wrapper.DataModel.Entities;
-using dotnet_webapi_claude_wrapper.Repositories;
-using Message = dotnet_webapi_claude_wrapper.DataModel.Entities.Message;
 
 namespace dotnet_webapi_claude_wrapper.Services
 {
     public interface IClaudeService
     {
         Task<ChatResponse> ChatAsync(int userId, ChatRequest request);
+        Task<Chat> GetChatHistoryAsync(int userId, string conversationId);
     }
     
     public class ClaudeService : IClaudeService
     {
-        private readonly AnthropicClient _client;
+        private readonly HttpClient _httpClient;
         private readonly ClaudeSettings _settings;
         private readonly IClaudeRepository _repository;
+        private const string ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
         public ClaudeService(
+            HttpClient httpClient,
             IOptions<ClaudeSettings> settings,
             IClaudeRepository repository)
         {
+            _httpClient = httpClient;
             _settings = settings.Value;
             _repository = repository;
-            _client = new AnthropicClient(_settings.ApiKey);
+            
+            _httpClient.DefaultRequestHeaders.Add("x-api-key", _settings.ApiKey);
+            _httpClient.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
         }
 
         public async Task<ChatResponse> ChatAsync(int userId, ChatRequest request)
@@ -46,17 +39,32 @@ namespace dotnet_webapi_claude_wrapper.Services
             var chat = await _repository.GetOrCreateChatAsync(userId, request.ConversationId);
             var chatHistory = await _repository.GetChatMessagesAsync(chat.Id);
 
-            List<Message> messages = chatHistory.Select(m => new Message(m.Role, m.Content)).ToList();
-            messages.Add(new Message("user", request.Message));
+            var messages = chatHistory.Select(m => new
+            {
+                role = m.Role,
+                content = m.Content
+            }).ToList();
 
-            var response = await _client.CreateMessageAsync(
-                model: CreateMessageRequestModel.Claude35Sonnet20240620,
-                messages: messages,
-                maxTokens: _settings.MaxTokens,
-                system: _settings.DefaultSystem);
+            var requestBody = new
+            {
+                model = "claude-3-sonnet-20240229",
+                max_tokens = _settings.MaxTokens,
+                messages = messages.Concat(new[]
+                {
+                    new { role = "user", content = request.Message }
+                }),
+                system = _settings.DefaultSystem
+            };
+
+            var response = await _httpClient.PostAsJsonAsync(ANTHROPIC_API_URL, requestBody);
+            response.EnsureSuccessStatusCode();
+            
+            var responseBody = await response.Content.ReadFromJsonAsync<ClaudeResponse>();
+            var assistantMessage = responseBody?.Content?.FirstOrDefault()?.Text 
+                ?? throw new Exception("No response from Claude");
 
             // Save user message
-            var userMessage = new DataModel.Entities.Message
+            var userMessage = new Message
             {
                 ChatId = chat.Id,
                 Role = "user",
@@ -65,21 +73,38 @@ namespace dotnet_webapi_claude_wrapper.Services
             };
 
             // Save assistant message
-            var assistantMessage = new DataModel.Entities.Message
+            var assistantDbMessage = new Message
             {
                 ChatId = chat.Id,
                 Role = "assistant",
-                Content = response.Content.Value,
+                Content = assistantMessage,
                 CreatedAt = DateTime.UtcNow
             };
 
-            await _repository.SaveMessagesAsync(userMessage, assistantMessage);
+            await _repository.SaveMessagesAsync(userMessage, assistantDbMessage);
 
             return new ChatResponse
             {
-                Message = response.Content.Value,
+                Message = assistantMessage,
                 ConversationId = chat.ConversationId
             };
         }
+
+        public async Task<Chat> GetChatHistoryAsync(int userId, string conversationId)
+        {
+            var chat = await _repository.GetOrCreateChatAsync(userId, conversationId);
+            return chat;
+        }
+    }
+
+    // Helper class for deserializing Claude's response
+    public class ClaudeResponse
+    {
+        public List<ContentItem>? Content { get; set; }
+    }
+
+    public class ContentItem
+    {
+        public string? Text { get; set; }
     }
 }
