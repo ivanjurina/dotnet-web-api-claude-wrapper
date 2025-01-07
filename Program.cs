@@ -10,6 +10,7 @@ using dotnet_webapi_claude_wrapper.DataModel.Entities;
 using dotnet_webapi_claude_wrapper.Repositories;
 using dotnet_webapi_claude_wrapper.Services;
 using Anthropic;
+using dotnet_webapi_claude_wrapper.Contracts;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -110,6 +111,16 @@ builder.Services.AddHttpContextAccessor();
 
 // Add HttpClient
 builder.Services.AddHttpClient<ClaudeService>();
+
+// Add chat services
+builder.Services.AddScoped<IChatService, ChatService>();
+
+// Add ChatGPT configuration
+builder.Services.Configure<ChatGptSettings>(
+    builder.Configuration.GetSection("ChatGptSettings"));
+
+// Register ChatGPT service
+builder.Services.AddHttpClient<IChatGptService, ChatGptService>();
 
 var app = builder.Build();
 

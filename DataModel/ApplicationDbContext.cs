@@ -35,11 +35,7 @@ namespace dotnet_webapi_claude_wrapper.DataModel
             // Configure Message
             modelBuilder.Entity<Message>()
                 .HasKey(m => m.Id);
-            modelBuilder.Entity<Message>()
-                .HasOne(m => m.Chat)
-                .WithMany(c => c.Messages)
-                .HasForeignKey(m => m.ChatId);
-
+          
             // Seed admin user
             modelBuilder.Entity<User>().HasData(new User
             {

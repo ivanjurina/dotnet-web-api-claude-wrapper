@@ -12,19 +12,21 @@ namespace dotnet_webapi_claude_wrapper.Controllers
     [Authorize]
     public class ChatController : ControllerBase
     {
-        private readonly IClaudeService _claudeService;
+        private readonly IChatService _chatService;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
         public ChatController(
-            IClaudeService claudeService,
+            IChatService chatService,
             IHttpContextAccessor httpContextAccessor)
         {
-            _claudeService = claudeService;
+            _chatService = chatService;
             _httpContextAccessor = httpContextAccessor;
         }
 
         [HttpPost("message")]
-        public async Task<ActionResult<ChatResponse>> SendMessage([FromBody] ChatRequest request)
+        public async Task<ActionResult<ChatResponse>> SendMessage(
+            [FromBody] ChatRequest request,
+            [FromQuery] string provider = "claude")
         {
             try
             {
@@ -34,7 +36,7 @@ namespace dotnet_webapi_claude_wrapper.Controllers
                 if (userId == 0)
                     return Unauthorized();
 
-                var response = await _claudeService.ChatAsync(userId, request);
+                var response = await _chatService.ChatAsync(userId, request, provider);
                 return Ok(response);
             }
             catch (Exception ex)
@@ -54,7 +56,7 @@ namespace dotnet_webapi_claude_wrapper.Controllers
                 if (userId == 0)
                     return Unauthorized();
 
-                var chat = await _claudeService.GetChatHistoryAsync(userId, conversationId);
+                var chat = await _chatService.GetChatHistoryAsync(userId, conversationId);
                 return Ok(chat);
             }
             catch (Exception ex)

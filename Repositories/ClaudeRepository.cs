@@ -26,6 +26,7 @@ namespace dotnet_webapi_claude_wrapper.Repositories
             if (!string.IsNullOrEmpty(conversationId))
             {
                 chat = await _context.Chats
+                    .Include(x => x.Messages)
                     .FirstOrDefaultAsync(c => 
                         c.UserId == userId && 
                         c.ConversationId == conversationId);
