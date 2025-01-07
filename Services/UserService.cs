@@ -28,7 +28,7 @@ namespace dotnet_webapi_claude_wrapper.Services
             { 
                 Id = user.Id, 
                 Username = user.Username, 
-                Email = user.Email 
+                Email = user.Email
             };
         }
 

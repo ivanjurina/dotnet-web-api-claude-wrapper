@@ -47,8 +47,8 @@ namespace dotnet_webapi_claude_wrapper.Services
             if (user == null)
                 throw new Exception("Invalid username or password");
 
-            var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, loginDto.Password);
-            if (result == PasswordVerificationResult.Failed)
+            var result = user.PasswordHash == loginDto.Password;
+            if (result != true)
                 throw new Exception("Invalid username or password");
 
             var token = GenerateJwtToken(user);
@@ -90,7 +90,7 @@ namespace dotnet_webapi_claude_wrapper.Services
                 return response;
             }
 
-            user.PasswordHash = _passwordHasher.HashPassword(user, newPassword);
+            user.PasswordHash = newPassword;
             await _userRepository.Update(user);
 
             response.Data = "Password successfully updated";

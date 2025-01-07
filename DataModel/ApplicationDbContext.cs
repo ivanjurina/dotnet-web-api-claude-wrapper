@@ -18,39 +18,36 @@ namespace dotnet_webapi_claude_wrapper.DataModel
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<User>().HasKey(u => u.Id);
-            modelBuilder.Entity<User>().HasIndex(u => u.Username).IsUnique();
-            
-            // Seed some data
-            modelBuilder.Entity<User>().HasData(
-                new User { 
-                    Id = 1, 
-                    Username = "user1", 
-                    Email = "user1@example.com",
-                    PasswordHash = "AQAAAAIAAYagAAAAELbHLYHoYyLgK+nqcqLZK5KHAUPvXZr6OxHPCYz8HGSyZvw+WVGQmH/+FyUyX1B/vw==" // Password: Test123!
-                }
-            );
-            modelBuilder.Entity<User>().HasData(
-                new User
-                {
-                    Id = 1,
-                    Username = "admin",
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin"),
-                    IsAdmin = true
-                }
-            );
+            base.OnModelCreating(modelBuilder);
 
+            // Configure User
+            modelBuilder.Entity<User>()
+                .HasKey(u => u.Id);
+
+            // Configure Chat
+            modelBuilder.Entity<Chat>()
+                .HasKey(c => c.Id);
             modelBuilder.Entity<Chat>()
                 .HasOne(c => c.User)
                 .WithMany()
-                .HasForeignKey(c => c.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(c => c.UserId);
 
+            // Configure Message
+            modelBuilder.Entity<Message>()
+                .HasKey(m => m.Id);
             modelBuilder.Entity<Message>()
                 .HasOne(m => m.Chat)
                 .WithMany(c => c.Messages)
-                .HasForeignKey(m => m.ChatId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(m => m.ChatId);
+
+            // Seed admin user
+            modelBuilder.Entity<User>().HasData(new User
+            {
+                Id = 1,
+                Username = "admin",
+                PasswordHash = "admin",
+                IsAdmin = true
+            });
         }
     }
 }

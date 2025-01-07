@@ -113,12 +113,17 @@ builder.Services.AddHttpClient<ClaudeService>();
 
 var app = builder.Build();
 
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+// Ensure database is created
+using (var scope = app.Services.CreateScope())
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "dotnet_webapi_claude_wrapper API V1");
-    c.RoutePrefix = string.Empty;
-});
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    context.Database.EnsureCreated();
+}
+
+// Configure the HTTP request pipeline.
+
+    app.UseSwagger();
+    app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 app.UseAuthentication();

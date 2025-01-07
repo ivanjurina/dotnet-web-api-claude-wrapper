@@ -39,25 +39,24 @@ namespace dotnet_webapi_claude_wrapper.Services
             var chat = await _repository.GetOrCreateChatAsync(userId, request.ConversationId);
             var chatHistory = await _repository.GetChatMessagesAsync(chat.Id);
 
-            var messages = chatHistory.Select(m => new
-            {
-                role = m.Role,
-                content = m.Content
-            }).ToList();
-
             var requestBody = new
             {
                 model = "claude-3-sonnet-20240229",
                 max_tokens = _settings.MaxTokens,
-                messages = messages.Concat(new[]
+                messages = new[]
                 {
                     new { role = "user", content = request.Message }
-                }),
-                system = _settings.DefaultSystem
+                }
             };
 
-            var response = await _httpClient.PostAsJsonAsync(ANTHROPIC_API_URL, requestBody);
-            response.EnsureSuccessStatusCode();
+            using var httpContent = JsonContent.Create(requestBody);
+            var response = await _httpClient.PostAsync(ANTHROPIC_API_URL, httpContent);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Claude API error: {errorContent}");
+            }
             
             var responseBody = await response.Content.ReadFromJsonAsync<ClaudeResponse>();
             var assistantMessage = responseBody?.Content?.FirstOrDefault()?.Text 
@@ -92,8 +91,7 @@ namespace dotnet_webapi_claude_wrapper.Services
 
         public async Task<Chat> GetChatHistoryAsync(int userId, string conversationId)
         {
-            var chat = await _repository.GetOrCreateChatAsync(userId, conversationId);
-            return chat;
+            return await _repository.GetOrCreateChatAsync(userId, conversationId);
         }
     }
 
