@@ -4,18 +4,18 @@ using dotnet_webapi_claude_wrapper.DataModel.Entities;
 
 namespace dotnet_webapi_claude_wrapper.Repositories
 {
-    public interface IClaudeRepository
+    public interface IChatRepository
     {
         Task<Chat> GetOrCreateChatAsync(int userId, string? conversationId);
         Task<List<Message>> GetChatMessagesAsync(int chatId);
         Task SaveMessagesAsync(Message userMessage, Message assistantMessage);
     }
 
-    public class ClaudeRepository : IClaudeRepository
+    public class ChatRepository : IChatRepository
     {
         private readonly ApplicationDbContext _context;
 
-        public ClaudeRepository(ApplicationDbContext context)
+        public ChatRepository(ApplicationDbContext context)
         {
             _context = context;
         }
