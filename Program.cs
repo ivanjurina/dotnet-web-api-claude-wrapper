@@ -79,9 +79,6 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Register base services
-builder.Services.AddScoped<IBaseRepository, BaseRepository>();
-builder.Services.AddScoped<IBaseService, BaseService>();
 
 // Register User services
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -104,7 +101,7 @@ builder.Services.AddSingleton<IAnthropicClient>(sp =>
 builder.Services.AddScoped<IClaudeService, ClaudeService>();
 
 // Add repository
-builder.Services.AddScoped<IClaudeRepository, ClaudeRepository>();
+builder.Services.AddScoped<IChatRepository, ChatRepository>();
 
 // Add HttpContextAccessor
 builder.Services.AddHttpContextAccessor();

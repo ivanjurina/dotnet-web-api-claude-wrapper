@@ -1,11 +1,12 @@
 using dotnet_webapi_claude_wrapper.Contracts;
 using dotnet_webapi_claude_wrapper.DataModel.Entities;
+using dotnet_webapi_claude_wrapper.Repositories;
 
 namespace dotnet_webapi_claude_wrapper.Services
 {
     public interface IChatService
     {
-        Task<ChatResponse> ChatAsync(int userId, ChatRequest request, string provider = "claude");
+        Task<ChatResponse> ChatAsync(int userId, ChatRequest request, string provider = "chatgpt");
         Task<Chat> GetChatHistoryAsync(int userId, string conversationId);
     }
 
@@ -13,16 +14,18 @@ namespace dotnet_webapi_claude_wrapper.Services
     {
         private readonly IClaudeService _claudeService;
         private readonly IChatGptService _chatGptService;
-
+        private readonly IChatRepository _repository;
         public ChatService(
             IClaudeService claudeService,
-            IChatGptService chatGptService)
+            IChatGptService chatGptService,
+            IChatRepository repository)
         {
             _claudeService = claudeService;
             _chatGptService = chatGptService;
+            _repository = repository;
         }
 
-        public async Task<ChatResponse> ChatAsync(int userId, ChatRequest request, string provider = "claude")
+        public async Task<ChatResponse> ChatAsync(int userId, ChatRequest request, string provider = "chatgpt")
         {
             return provider.ToLower() switch
             {
@@ -34,8 +37,7 @@ namespace dotnet_webapi_claude_wrapper.Services
 
         public async Task<Chat> GetChatHistoryAsync(int userId, string conversationId)
         {
-            // We can use either service since they share the same database
-            return await _claudeService.GetChatHistoryAsync(userId, conversationId);
+            return await _repository.GetOrCreateChatAsync(userId, conversationId);
         }
     }
 } 

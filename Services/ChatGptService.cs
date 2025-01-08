@@ -16,13 +16,13 @@ namespace dotnet_webapi_claude_wrapper.Services
     {
         private readonly HttpClient _httpClient;
         private readonly ChatGptSettings _settings;
-        private readonly IClaudeRepository _repository; // Reusing the same repository
+        private readonly IChatRepository _repository; // Reusing the same repository
         private const string OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 
         public ChatGptService(
             HttpClient httpClient,
             IOptions<ChatGptSettings> settings,
-            IClaudeRepository repository)
+            IChatRepository repository)
         {
             _httpClient = httpClient;
             _settings = settings.Value;

@@ -11,20 +11,19 @@ namespace dotnet_webapi_claude_wrapper.Services
     public interface IClaudeService
     {
         Task<ChatResponse> ChatAsync(int userId, ChatRequest request);
-        Task<Chat> GetChatHistoryAsync(int userId, string conversationId);
     }
     
     public class ClaudeService : IClaudeService
     {
         private readonly HttpClient _httpClient;
         private readonly ClaudeSettings _settings;
-        private readonly IClaudeRepository _repository;
+        private readonly IChatRepository _repository;
         private const string ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
         public ClaudeService(
             HttpClient httpClient,
             IOptions<ClaudeSettings> settings,
-            IClaudeRepository repository)
+            IChatRepository repository)
         {
             _httpClient = httpClient;
             _settings = settings.Value;
@@ -87,11 +86,6 @@ namespace dotnet_webapi_claude_wrapper.Services
                 Message = assistantMessage,
                 ConversationId = chat.ConversationId
             };
-        }
-
-        public async Task<Chat> GetChatHistoryAsync(int userId, string conversationId)
-        {
-            return await _repository.GetOrCreateChatAsync(userId, conversationId);
         }
     }
 
